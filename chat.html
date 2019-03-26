@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket demo</title>
+    <!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+</head>
+<body>
+<div class="container">
+    <div class="row">
+        <h1 style="text-align: center">那些年踩过的坑-聊天室</h1>
+    </div>
+    <div class="row">
+        <h3 style="text-align: right"> 在线人数： <span class="users">?</span></h3>
+    </div>
+
+    <div class="row">
+        <div style="width:98%;height:550px;overflow:auto" id="msg-box">
+            <ul id="msg">
+
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="input-group">
+                <input type="text" class="form-control" id="user" placeholder="请输入名字">
+                <span class="input-group-btn">
+                    <button class="btn btn-default" id="join" onclick="join()" type="button">加入</button></span>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="input-group">
+                <input type="text" class="form-control" id="comment" placeholder="消息">
+                <span class="input-group-btn">
+                    <button class="btn btn-default" id="send" onclick="send()" type="button">发送</button></span>
+            </div>
+        </div>
+
+
+    </div>
+</div>
+<script>
+
+    var websocket = new WebSocket("ws://127.0.0.1:6789");
+    var users = document.querySelector('.users');
+
+
+    function join(event) {
+
+        let name = document.getElementById("user").value;
+        if (name === "") {
+            alert("请输入名字")
+        } else {
+            let join = document.getElementById("join");
+            let user = document.getElementById("user");
+            join.setAttribute("disabled", true);
+            user.setAttribute("disabled", true);
+            websocket.send(JSON.stringify({"type": "join", "user": name}))
+        }
+
+    }
+
+    function send(event) {
+        let name = document.getElementById("user").value;
+        if (name === "") {
+            alert("请输入名字并加入")
+        } else {
+            let comment = document.getElementById("comment").value;
+
+            websocket.send(JSON.stringify({"comment": comment}));
+
+        }
+
+
+    }
+
+    websocket.onmessage = function (event) {
+        let data = JSON.parse(event.data);
+        let para = document.createElement("li");
+        let msg_box = document.getElementById("msg-box");
+        switch (data.type) {
+            case 'user_join':
+                let msg_join = document.getElementById("msg");
+                let node_join = document.createTextNode("欢迎" + data.name + "加入");
+                para.appendChild(node_join);
+                users.textContent = (data.total.toString() + " 人" + (data.total === 1 ? "" : "s"));
+                msg_join.appendChild(para);
+                break;
+            case 'user_left':
+                let msg_left = document.getElementById("msg");
+                let node_left = document.createTextNode(data.name + "离开了");
+                para.appendChild(node_left);
+                users.textContent = (data.total.toString() + " 人" + (data.total === 1 ? "" : "s"));
+                msg_left.appendChild(para);
+                break;
+            case 'message':
+                let msg = document.getElementById("msg");
+                let message = document.createTextNode(data.name + "说:" + data.comment);
+                para.appendChild(message);
+                msg.appendChild(para);
+                break;
+            default:
+                console.error("unsupported event", data);
+        }
+
+
+        msg_box.scrollTop = msg_box.scrollHeight;
+
+    };
+
+
+</script>
+</body>
+</html>
